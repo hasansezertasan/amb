@@ -1,0 +1,23 @@
+This is machine-readable project state for the Keep the Why skill
+(https://keepthewhy.com). See context/index.md, or this project's own
+README, for what Keep the Why actually is.
+
+<!-- keep-the-why:config -->
+- id: hasansezertasan---amb
+- canonical: https://github.com/hasansezertasan/amb
+- context: `context/`
+- init: complete
+- context-schema: 0.20.1
+- capture-confirmation: confirm-when-unsure
+- source-reference: never
+- dashboard-state: https://hasansezertasan.github.io/amb/dashboard/live/state.json
+<!-- /keep-the-why:config -->
+
+<!-- keep-the-why:personal-defaults -->
+- capture-mode: proactive
+- confirmation-flow: batch
+- update-check: every 14 days
+- consistency-check: every 30 days
+- local-lint: auto
+- pending-confirmation-check: no
+<!-- /keep-the-why:personal-defaults -->
