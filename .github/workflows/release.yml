@@ -1,0 +1,231 @@
+---
+name: Release
+on:
+  # DO NOT REMOVE workflow_dispatch. `finalize-release` re-dispatches this
+  # workflow with `gh workflow run` to reconcile a phantom release PR, and that
+  # API needs the trigger to exist. workflow_dispatch is also the documented
+  # exception to GITHUB_TOKEN loop-prevention, so that step needs no PAT. A
+  # manual run executes this file from the *selected branch*; the containment is
+  # the `publish` environment's main-only deployment-branch policy, which GitHub
+  # evaluates outside this file (see docs/RELEASING.md).
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+permissions: {}
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    name: Release Please
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      issues: write  # IMPORTANT: release-please manages PR labels via the Issues API
+      pull-requests: write
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - name: Release Please
+        id: release
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7  # v5.0.0
+        with:
+          config-file: .github/release-please-config.json
+          manifest-file: .github/release-please-manifest.json
+  build:
+    name: Build (${{ matrix.target }})
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    timeout-minutes: 30
+    # The main-only deployment policy on this environment protects attestation
+    # minting and crates.io publishing from branch dispatches.
+    environment: publish
+    permissions:
+      attestations: write  # IMPORTANT: publish Sigstore build provenance to GitHub
+      contents: read  # IMPORTANT: actions/checkout needs read access to the repo
+      id-token: write  # IMPORTANT: mint the Sigstore signing certificate
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          # Native runners only: cpal links libasound dynamically, so musl and
+          # cross builds are not an option. ubuntu-22.04 keeps the glibc floor low.
+          - { target: x86_64-unknown-linux-gnu, os: ubuntu-22.04, ext: tar.gz }
+          - { target: aarch64-unknown-linux-gnu, os: ubuntu-22.04-arm, ext: tar.gz }
+          - { target: aarch64-apple-darwin, os: macos-14, ext: tar.gz }
+          - { target: x86_64-apple-darwin, os: macos-15-intel, ext: tar.gz }
+          - { target: x86_64-pc-windows-msvc, os: windows-2022, ext: zip }
+    env:
+      TARGET: ${{ matrix.target }}
+      EXT: ${{ matrix.ext }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+      - name: Install ALSA headers
+        if: ${{ runner.os == 'Linux' }}
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libasound2-dev pkg-config
+      - name: Install toolchain
+        run: rustup toolchain install stable --profile minimal --target "$TARGET"
+      - name: Build
+        # No cargo cache here on purpose: release artifacts must not be built
+        # from a cache a pull request could have poisoned.
+        run: cargo build --release --locked --target "$TARGET"
+      - name: Package
+        # mise's github backend picks the asset by OS/arch in the name and strips
+        # a single top-level directory, so no extra config is needed.
+        shell: bash
+        run: |
+          name="amb-${TARGET}"
+          mkdir "$name"
+          bin=amb
+          if [ "$RUNNER_OS" = "Windows" ]; then bin=amb.exe; fi
+          cp "target/${TARGET}/release/${bin}" LICENSE README.md "$name/"
+          if [ "$EXT" = "zip" ]; then
+            7z a "${name}.zip" "$name" > /dev/null
+          else
+            tar czf "${name}.tar.gz" "$name"
+          fi
+          if command -v sha256sum > /dev/null; then
+            sha256sum "${name}.${EXT}" > "${name}.${EXT}.sha256"
+          else
+            shasum -a 256 "${name}.${EXT}" > "${name}.${EXT}.sha256"
+          fi
+          mkdir dist
+          mv "${name}.${EXT}" "${name}.${EXT}.sha256" dist/
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8  # v4.2.2
+        with:
+          subject-path: dist/amb-*.${{ matrix.ext }}
+      - name: Upload archive
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: dist-${{ matrix.target }}
+          path: dist/
+          if-no-files-found: error
+  sbom:
+    name: Generate SBOM (CycloneDX)
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read  # IMPORTANT: actions/checkout needs read access to the repo
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+      - name: Install toolchain
+        run: rustup toolchain install stable --profile minimal
+      - name: Install cargo-cyclonedx
+        uses: taiki-e/install-action@a4d3f3f761dcd95cce1b72cb61cb6d1963438177  # v2.87.30
+        with:
+          tool: cargo-cyclonedx@0.5.9
+      - name: Generate CycloneDX SBOM
+        run: cargo cyclonedx --format json --override-filename amb-sbom.cdx
+      - name: Upload SBOM
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: sbom
+          path: amb-sbom.cdx.json
+          if-no-files-found: error
+  crates-publish:
+    name: Publish to crates.io
+    needs: [release-please, build]
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    timeout-minutes: 15
+    environment:
+      name: publish
+      url: https://crates.io/crates/amb/${{ needs.release-please.outputs.version }}
+    permissions:
+      contents: read  # IMPORTANT: actions/checkout needs read access to the repo
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+      - name: Install ALSA headers
+        # `cargo publish` verifies the package by building it.
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libasound2-dev pkg-config
+      - name: Install toolchain
+        run: rustup toolchain install stable --profile minimal
+      - name: Publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish --locked
+  attach-github-release:
+    name: Attach assets to the draft release
+    needs: [release-please, build, sbom, crates-publish]
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # IMPORTANT: mandatory to upload to the GitHub Release
+    steps:
+      - name: Download assets
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          path: dist/
+          merge-multiple: true
+      - name: Attach assets to the draft release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Pass GitHub context through env, never interpolated into the shell.
+          TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          # Guard the empty case first: `xargs` with no input never invokes gh and
+          # exits 0, which would silently publish a release with zero assets.
+          test "$(find dist -type f | wc -l)" -gt 0 \
+            || { echo "::error::no assets found under dist/ to attach to the release"; exit 1; }
+          find dist -type f -print0 | xargs -0 gh release upload "$TAG_NAME" --clobber --repo "$REPO"
+  finalize-release:
+    name: Publish the GitHub Release
+    needs: [release-please, attach-github-release]
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # IMPORTANT: mandatory to un-draft the GitHub Release
+      pull-requests: write  # IMPORTANT: mandatory to close the phantom release PR
+      actions: write  # IMPORTANT: mandatory to re-dispatch this workflow
+    steps:
+      - name: Publish the draft release
+        # With release immutability on, publishing locks the tag and assets, so
+        # this must be the last step touching the release. Known cosmetic limit:
+        # release-please's "Created releases" comment on the merged release PR
+        # links the draft's transient `untagged-<hash>` URL, which 404s once the
+        # release is published. The release itself is correct.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
+          REPO: ${{ github.repository }}
+        run: gh release edit "$TAG_NAME" --draft=false --repo "$REPO"
+      - name: Reconcile the next release PR against the published release
+        # release-please derives its commit range from the latest *published*
+        # release and ignores drafts, so a release PR opened in this same run was
+        # computed with no baseline and re-lists shipped commits. It will not
+        # self-heal, so close it now and re-dispatch: the new run sees the
+        # published release and recreates a correct PR only if real unreleased
+        # commits exist, which bounds the re-trigger to one run.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          REF_NAME: ${{ github.ref_name }}
+          WORKFLOW: ${{ github.workflow }}
+        run: |
+          pr="$(gh pr list --state open \
+            --repo "$REPO" \
+            --head "release-please--branches--$REF_NAME" \
+            --json number --jq '.[0].number // empty')"
+          if [ -n "$pr" ]; then
+            echo "Closing phantom release PR #$pr"
+            gh pr close "$pr" --delete-branch --repo "$REPO"
+          fi
+          gh workflow run "$WORKFLOW" --ref "$REF_NAME" --repo "$REPO"

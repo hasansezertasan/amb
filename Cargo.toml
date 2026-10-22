@@ -1,0 +1,31 @@
+[package]
+name = "amb"
+# release-please bumps this; the first release lands as 0.1.0.
+version = "0.0.0"
+edition = "2024"
+# Let-chains (used in main.rs) need 1.88; etcetera needs 1.87.
+rust-version = "1.88"
+description = "A terminal ambient-sound mixer: rain, thunder, wind, waves, fire and more, synthesised live"
+license = "MIT"
+repository = "https://github.com/hasansezertasan/amb"
+readme = "README.md"
+keywords = ["ambient", "tui", "ratatui", "soundscape", "white-noise"]
+categories = ["command-line-utilities", "multimedia::audio"]
+exclude = [".github/", "context/", ".keep-the-why", "AGENTS.md", "CLAUDE.md", ".claude/"]
+
+[[bin]]
+name = "amb"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1.0.104"
+crossterm = "0.29.0"
+etcetera = "0.11.0"
+ratatui = "0.30.2"
+# Only live output is needed; the default features pull in every audio decoder.
+rodio = { version = "0.23.0", default-features = false, features = ["playback"] }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true
