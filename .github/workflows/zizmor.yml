@@ -1,10 +1,10 @@
 ---
 # zizmor security dashboard: runs the GitHub Actions static analysis and uploads
 # the findings to the repository's Security tab (code scanning) for stateful,
-# incremental triage. This is the NON-BLOCKING half of the two-layer setup — it
-# never fails the build on findings (that is the job of the blocking `zizmor`
-# prek hook in the CI `hooks` job). Use branch protection / rulesets on the
-# code-scanning results if you want the dashboard to gate merges too.
+# incremental triage. This workflow is not a blocking gate: the action reports
+# findings through code scanning and does not fail the build on them. To make
+# findings gate merges, add a ruleset on the code-scanning results or run zizmor
+# as a required CI job.
 #
 # Advanced Security / code scanning is free on public repositories; on private
 # repositories it requires GitHub Advanced Security. The action's SARIF upload
@@ -24,6 +24,9 @@ jobs:
     name: Audit workflows with zizmor
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # A pull request from a fork gets a read-only token, so the SARIF upload would
+    # fail there. Such runs fall back to annotations (below) and stay advisory.
+    continue-on-error: ${{ github.event.pull_request.head.repo.fork == true }}
     permissions:
       security-events: write  # upload SARIF to the code-scanning dashboard
       contents: read  # only needed for private/internal repos
@@ -42,7 +45,7 @@ jobs:
           # inline workflow annotations there -- same audit, no code-scanning
           # upload. The two inputs are mutually exclusive per the action's docs.
           # This workflow only runs on `push`/`pull_request`, which always carry
-          # the event payload, so no fallback for an unknown visibility is
-          # needed (unlike scorecard.yml, which also runs on `schedule`).
-          advanced-security: ${{ github.event.repository.visibility == 'public' }}
-          annotations: ${{ github.event.repository.visibility != 'public' }}
+          # the event payload, so no fallback for an unknown visibility is needed.
+          # Fork pull requests also use annotations: their token cannot upload SARIF.
+          advanced-security: ${{ github.event.repository.visibility == 'public' && github.event.pull_request.head.repo.fork != true }}
+          annotations: ${{ github.event.repository.visibility != 'public' || github.event.pull_request.head.repo.fork == true }}
