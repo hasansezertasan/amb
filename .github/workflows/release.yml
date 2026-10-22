@@ -26,6 +26,7 @@ jobs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
       version: ${{ steps.release.outputs.version }}
+      sha: ${{ steps.release.outputs.sha }}
     steps:
       - name: Release Please
         id: release
@@ -64,6 +65,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
         with:
+          # The commit the release was tagged at, not the commit that triggered this
+          # run: they differ if a later push or manual dispatch re-runs the release.
+          ref: ${{ needs.release-please.outputs.sha }}
           persist-credentials: false
       - name: Install ALSA headers
         if: ${{ runner.os == 'Linux' }}
@@ -118,6 +122,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
         with:
+          # The commit the release was tagged at, not the commit that triggered this
+          # run: they differ if a later push or manual dispatch re-runs the release.
+          ref: ${{ needs.release-please.outputs.sha }}
           persist-credentials: false
       - name: Install toolchain
         run: rustup toolchain install stable --profile minimal
@@ -148,6 +155,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
         with:
+          # The commit the release was tagged at, not the commit that triggered this
+          # run: they differ if a later push or manual dispatch re-runs the release.
+          ref: ${{ needs.release-please.outputs.sha }}
           persist-credentials: false
       - name: Install ALSA headers
         # `cargo publish` verifies the package by building it.
