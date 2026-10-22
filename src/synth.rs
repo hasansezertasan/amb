@@ -108,6 +108,13 @@ fn glide_at(glide: f32, sr: f32) -> f32 {
     1.0 - decay_at(1.0 - glide, sr)
 }
 
+/// White noise has a fixed variance per sample, so its power per Hz falls as the
+/// sample rate rises. Scaling by sqrt(sr / REF_SR) keeps the in-band level of
+/// filtered noise the same at any device rate.
+fn noise_gain_at(sr: f32) -> f32 {
+    (sr / REF_SR).sqrt()
+}
+
 /// Per-sample step of a random walk, scaled so its loudness is rate-independent.
 fn walk_step_at(step: f32, sr: f32) -> f32 {
     step * (REF_SR / sr).sqrt()
@@ -179,6 +186,7 @@ struct Rain {
     hp: [LowPass; 2],
     drops: [Raindrop; 2],
     drop_decay: f32,
+    noise_gain: f32,
 }
 
 #[derive(Default)]
@@ -197,6 +205,7 @@ impl Rain {
             hp: Default::default(),
             drops: Default::default(),
             drop_decay: decay_at(0.9985, sr),
+            noise_gain: noise_gain_at(sr),
         }
     }
 }
@@ -205,7 +214,7 @@ impl Synth for Rain {
     fn next(&mut self) -> (f32, f32) {
         let mut out = [0.0; 2];
         for c in 0..2 {
-            let white = self.rng.bipolar();
+            let white = self.rng.bipolar() * self.noise_gain;
             let band = self.lp[c].process(white, 7000.0, self.sr);
             let hissy = band - self.hp[c].process(band, 600.0, self.sr);
             let d = &mut self.drops[c];
@@ -290,6 +299,7 @@ struct Wind {
     gust: Wander,
     gust_glide: f32,
     sweep_glide: f32,
+    noise_gain: f32,
 }
 
 impl Wind {
@@ -302,6 +312,7 @@ impl Wind {
             gust: Wander::new(),
             gust_glide: glide_at(0.00004, sr),
             sweep_glide: glide_at(0.00006, sr),
+            noise_gain: noise_gain_at(sr),
         }
     }
 }
@@ -315,7 +326,7 @@ impl Synth for Wind {
         for c in 0..2 {
             let s = self.sweep[c].next(&mut self.rng, self.sr, 2.0, 6.0, self.sweep_glide);
             let freq = 250.0 + 700.0 * s * (0.5 + gust);
-            let white = self.rng.bipolar();
+            let white = self.rng.bipolar() * self.noise_gain;
             out[c] = self.bp[c].process(white, freq, 1.4, self.sr) * (0.5 + 1.1 * gust);
         }
         (out[0], out[1])
@@ -332,6 +343,7 @@ struct Waves {
     phase: [f32; 2],
     period: Wander,
     period_glide: f32,
+    noise_gain: f32,
 }
 
 impl Waves {
@@ -344,6 +356,7 @@ impl Waves {
             phase: [0.0, 0.31],
             period: Wander::new(),
             period_glide: glide_at(0.00002, sr),
+            noise_gain: noise_gain_at(sr),
         }
     }
 }
@@ -360,7 +373,7 @@ impl Synth for Waves {
             self.phase[c] = (self.phase[c] + rate / self.sr).fract();
             let swell = 0.5 - 0.5 * (self.phase[c] * TAU).cos();
             let swell = swell * swell;
-            let white = self.rng.bipolar();
+            let white = self.rng.bipolar() * self.noise_gain;
             // The wash gets brighter as the wave breaks.
             let cutoff = 400.0 + 2600.0 * swell;
             let wash = self.lp[c].process(white, cutoff, self.sr);
@@ -429,6 +442,7 @@ struct Stream {
     lp: [LowPass; 2],
     babble: [LowPass; 2],
     lp_mod: [LowPass; 2],
+    noise_gain: f32,
 }
 
 impl Stream {
@@ -440,6 +454,7 @@ impl Stream {
             lp: Default::default(),
             babble: Default::default(),
             lp_mod: Default::default(),
+            noise_gain: noise_gain_at(sr),
         }
     }
 }
@@ -449,10 +464,11 @@ impl Synth for Stream {
         let mut out = [0.0; 2];
         for c in 0..2 {
             // Band-limited noise as a ~12 Hz random control signal -> babbling.
-            let m = self.babble[c].process(self.rng.bipolar(), 14.0, self.sr) * 45.0;
+            let m =
+                self.babble[c].process(self.rng.bipolar() * self.noise_gain, 14.0, self.sr) * 45.0;
             let m = self.lp_mod[c].process(m, 30.0, self.sr).clamp(-1.0, 1.0);
             let freq = 1100.0 + 900.0 * m;
-            let white = self.rng.bipolar();
+            let white = self.rng.bipolar() * self.noise_gain;
             let burble = self.bp[c].process(white, freq, 2.5, self.sr);
             let base = self.lp[c].process(white, 2500.0, self.sr);
             out[c] = burble * 0.9 + base * 0.25;
@@ -628,6 +644,31 @@ mod tests {
                 );
                 assert!(peak < 4.0, "{kind:?} peak {peak} is far too hot");
                 assert!(energy > 1.0, "{kind:?} is silent");
+            }
+        }
+    }
+
+    fn rms(kind: Kind, sr: f32) -> f32 {
+        let mut s = make(kind, sr, 7);
+        let n = (sr * 30.0) as usize;
+        let mut energy = 0.0f32;
+        for _ in 0..n {
+            let (l, r) = s.next();
+            energy += l * l + r * r;
+        }
+        (energy / (2.0 * n as f32)).sqrt()
+    }
+
+    #[test]
+    fn noise_loudness_is_independent_of_sample_rate() {
+        for kind in [Kind::Rain, Kind::Wind, Kind::Waves, Kind::Stream] {
+            let base = rms(kind, 44_100.0);
+            for sr in [48_000.0, 96_000.0, 192_000.0] {
+                let ratio = rms(kind, sr) / base;
+                assert!(
+                    (0.75..1.35).contains(&ratio),
+                    "{kind:?} at {sr} Hz is {ratio:.2}x as loud as at 44.1 kHz"
+                );
             }
         }
     }
