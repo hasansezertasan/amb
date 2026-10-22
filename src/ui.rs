@@ -2,7 +2,7 @@ use ratatui::Frame;
 use ratatui::layout::{Alignment, Constraint, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, BorderType, Paragraph};
+use ratatui::widgets::{Block, BorderType, Paragraph, Wrap};
 
 use crate::app::App;
 use crate::synth::Kind;
@@ -130,7 +130,11 @@ fn draw_footer(f: &mut Frame, area: Rect) {
         spans.push(Span::styled(format!(" {d}"), Style::new().fg(DIM)));
     }
     f.render_widget(
-        Paragraph::new(Line::from(spans)).alignment(Alignment::Center),
+        // The hints are ~97 columns wide; wrap onto the footer's second row so
+        // nothing is clipped on an 80-column terminal.
+        Paragraph::new(Line::from(spans))
+            .alignment(Alignment::Center)
+            .wrap(Wrap { trim: true }),
         area,
     );
 }
@@ -183,5 +187,24 @@ mod tests {
             text.contains("Crickets"),
             "selected row scrolled out of view"
         );
+    }
+
+    #[test]
+    fn footer_hints_fit_an_80_column_terminal() {
+        let app = App::new(Arc::new(Shared::new()));
+        let mut term = Terminal::new(TestBackend::new(80, 16)).unwrap();
+        term.draw(|f| draw(f, &app)).unwrap();
+        let text: String = term
+            .backend()
+            .buffer()
+            .content()
+            .iter()
+            .map(|c| c.symbol())
+            .collect();
+        for hint in [
+            "select", "level", "set", "master", "pause", "mute all", "quit",
+        ] {
+            assert!(text.contains(hint), "footer hint {hint:?} is clipped");
+        }
     }
 }
