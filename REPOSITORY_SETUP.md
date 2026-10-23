@@ -115,41 +115,9 @@ first-publish steps of the template do not apply here.
 curl -s -A "setup-check" https://crates.io/api/v1/crates/amb | jq -e '.crate.name == "amb"'
 ```
 
-The trusted publisher itself has no scriptable check: the first release after the switch is its test. If the
+The trusted publisher itself has no scriptable check; 0.1.2 was its first release and published with it. If the
 publish job fails before uploading, fix the setting and re-run the failed jobs.
 
-**Moving a repository from token-based publishing.** Changing the workflow does not delete the
-`CARGO_REGISTRY_TOKEN` secret or revoke the token. After the first release that publishes through trusted
-publishing succeeds, remove it. The secret may sit in the `publish` environment or, if it was added at
-repository level, in the repository secrets, which jobs using the environment can read as well. Remove both.
-
-**[AGENT]**
-
-```sh
-gh secret delete CARGO_REGISTRY_TOKEN --env publish --repo hasansezertasan/amb || true
-gh secret delete CARGO_REGISTRY_TOKEN --repo hasansezertasan/amb || true
-```
-
-**[HUMAN]** Revoke the token at https://crates.io/settings/tokens, so no long-lived publish credential stays
-available to jobs using the environment.
-
-**[CHECK]**
-
-```sh
-[ "$(gh secret list --env publish --repo hasansezertasan/amb --json name \
-  --jq 'map(select(.name == "CARGO_REGISTRY_TOKEN")) | length')" = 0 ]
-[ "$(gh secret list --repo hasansezertasan/amb --json name \
-  --jq 'map(select(.name == "CARGO_REGISTRY_TOKEN")) | length')" = 0 ]
-```
-
-**[HUMAN]** Only if the repository belongs to an organization and the token was an organization secret: remove
-this repository from that secret's access list in the organization's settings (`gh secret list --org ORG`
-shows it) instead of deleting the secret, which other repositories may share. The checks above cannot see it:
-GitHub's organization-secrets endpoint for a repository rejects user-owned repositories.
-
-A failing `gh` (no authentication, no access) prints nothing, so the comparison fails instead of reporting the
-secret as gone. The deletion commands above ignore errors on purpose, since the secret usually exists in only
-one scope; this check is what proves the result.
 ## Branch ruleset for `main`
 
 `.github/rulesets/main.json` requires a pull request, linear history, squash merges, resolved review threads
