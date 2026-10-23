@@ -84,23 +84,10 @@ gh api repos/hasansezertasan/amb/environments/publish/deployment-branch-policies
 ## crates.io and trusted publishing
 
 The workflow publishes with a short-lived token obtained through trusted publishing, so no token is stored
-in GitHub. Trusted publishing only works for a crate that already exists, so create the crate first with a
-placeholder release. The version in `Cargo.toml` starts at `0.0.0`, and release-please takes it to `0.1.0`.
+in GitHub. The `amb` crate already exists (0.1.0 and 0.1.1 were published with an API token), so the
+first-publish steps of the template do not apply here.
 
-**[HUMAN]** Verify the email address of your crates.io account (https://crates.io/settings/profile). crates.io refuses to publish without it.
-
-**[HUMAN]** Check that the name `amb` is free: https://crates.io/crates/amb must show "not found".
-
-**[HUMAN]** Create an API token at https://crates.io/settings/tokens with the `publish-new` scope, then publish the placeholder from your machine:
-
-```sh
-cargo login
-cargo publish
-```
-
-Revoke that token afterwards: it was only for this first publish.
-
-**[HUMAN]** On the crate's page, Settings, Trusted Publishing, add a GitHub publisher with owner `hasansezertasan`, repository `amb`, workflow filename `release.yml` and environment `publish`. The environment must match the `environment: publish` of the publish job.
+**[HUMAN]** On the crate's page, Settings, Trusted Publishing, add a GitHub publisher with owner `hasansezertasan`, repository `amb`, workflow filename `release.yml` and environment `publish`. The environment must match the `environment: publish` of the publish job. This is already configured.
 
 **[CHECK]**
 
@@ -108,8 +95,30 @@ Revoke that token afterwards: it was only for this first publish.
 curl -s -A "setup-check" https://crates.io/api/v1/crates/amb | jq -e '.crate.name == "amb"'
 ```
 
-The trusted publisher itself has no scriptable check: the first release is its test. If the publish job fails
-before uploading, fix the setting and re-run the failed jobs.
+The trusted publisher itself has no scriptable check: the first release after the switch is its test. If the
+publish job fails before uploading, fix the setting and re-run the failed jobs.
+
+**Retire the old token.** Changing the workflow does not delete the `CARGO_REGISTRY_TOKEN` secret or revoke the
+token. After the first release that publishes through trusted publishing succeeds, remove the secret and
+revoke the token at https://crates.io/settings/tokens, so no long-lived publish credential stays available to
+jobs using the environment.
+
+**[AGENT]**
+
+```sh
+gh secret delete CARGO_REGISTRY_TOKEN --env publish --repo hasansezertasan/amb || true
+gh secret delete CARGO_REGISTRY_TOKEN --repo hasansezertasan/amb || true
+```
+
+**[CHECK]**
+
+```sh
+[ "$(gh secret list --env publish --repo hasansezertasan/amb --json name \
+  --jq 'map(select(.name == "CARGO_REGISTRY_TOKEN")) | length')" = 0 ]
+[ "$(gh secret list --repo hasansezertasan/amb --json name \
+  --jq 'map(select(.name == "CARGO_REGISTRY_TOKEN")) | length')" = 0 ]
+```
+
 ## Branch ruleset for `main`
 
 `.github/rulesets/main.json` requires a pull request, linear history, squash merges, resolved review threads
