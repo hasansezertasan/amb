@@ -10,4 +10,4 @@ Thanks for helping with amb.
 
 ## Releases
 
-Releases are automatic; see [docs/RELEASING.md](docs/RELEASING.md). Do not tag by hand.
+Releases are automatic; see [REPOSITORY_SETUP.md](REPOSITORY_SETUP.md). Do not tag by hand.

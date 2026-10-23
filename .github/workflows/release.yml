@@ -7,7 +7,7 @@ on:
   # exception to GITHUB_TOKEN loop-prevention, so that step needs no PAT. A
   # manual run executes this file from the *selected branch*; the containment is
   # the `publish` environment's main-only deployment-branch policy, which GitHub
-  # evaluates outside this file (see docs/RELEASING.md).
+  # evaluates outside this file (see REPOSITORY_SETUP.md).
   workflow_dispatch:
   push:
     branches:
