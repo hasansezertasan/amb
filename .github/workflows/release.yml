@@ -72,34 +72,19 @@ jobs:
       - name: Install ALSA headers
         if: ${{ runner.os == 'Linux' }}
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libasound2-dev pkg-config
+      # Every step that expands $TARGET runs in bash: the Windows runner's default
+      # shell is PowerShell, where "$TARGET" stays empty.
       - name: Install toolchain
+        shell: bash
         run: rustup toolchain install stable --profile minimal --target "$TARGET"
       - name: Build
         # No cargo cache here on purpose: release artifacts must not be built
         # from a cache a pull request could have poisoned.
+        shell: bash
         run: cargo build --release --locked --target "$TARGET"
       - name: Package
-        # mise's github backend picks the asset by OS/arch in the name and strips
-        # a single top-level directory, so no extra config is needed.
         shell: bash
-        run: |
-          name="amb-${TARGET}"
-          mkdir "$name"
-          bin=amb
-          if [ "$RUNNER_OS" = "Windows" ]; then bin=amb.exe; fi
-          cp "target/${TARGET}/release/${bin}" LICENSE README.md "$name/"
-          if [ "$EXT" = "zip" ]; then
-            7z a "${name}.zip" "$name" > /dev/null
-          else
-            tar czf "${name}.tar.gz" "$name"
-          fi
-          if command -v sha256sum > /dev/null; then
-            sha256sum "${name}.${EXT}" > "${name}.${EXT}.sha256"
-          else
-            shasum -a 256 "${name}.${EXT}" > "${name}.${EXT}.sha256"
-          fi
-          mkdir dist
-          mv "${name}.${EXT}" "${name}.${EXT}.sha256" dist/
+        run: bash .github/scripts/package-release.sh
       - name: Attest build provenance
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8  # v4.2.2
         with:
