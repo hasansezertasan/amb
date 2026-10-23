@@ -217,8 +217,11 @@ jobs:
         run: |
           # release-please's branch carries the component, e.g.
           # release-please--branches--main--components--amb, so match by prefix.
+          # gh lists only the 30 newest PRs by default and the prefix filter runs
+          # client-side, so raise the limit or the release PR could fall outside it.
           pr="$(gh pr list --state open \
             --repo "$REPO" \
+            --limit 200 \
             --json number,headRefName \
             --jq '[.[] | select(.headRefName | startswith("release-please--branches--" + env.REF_NAME))] | .[0].number // empty')"
           if [ -n "$pr" ]; then
