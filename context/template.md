@@ -63,8 +63,9 @@ and conflict on the next `copier update`.
 **Revisit when:** copier-rust ships a `docs/RELEASING.md` again
 
 copier-rust folded `docs/RELEASING.md` into `REPOSITORY_SETUP.md` and no longer
-renders the file; amb removed its own copy once the trusted-publishing
-migration it documented was finished. The crates.io section of amb's
+renders the file; amb's own copy, which only added the trusted-publishing
+migration notes on top of it, is removed in PR #12 now that the migration is
+finished (until that merges, the file is still in the tree). The crates.io section of amb's
 `REPOSITORY_SETUP.md` also differs from the template's: it drops the
 first-publish steps, because the `amb` crate already existed when the file was
 generated.
