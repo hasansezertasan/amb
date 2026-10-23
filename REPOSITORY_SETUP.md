@@ -118,6 +118,10 @@ curl -s -A "setup-check" https://crates.io/api/v1/crates/amb | jq -e '.crate.nam
 The trusted publisher itself has no scriptable check; 0.1.2 was its first release and published with it. If the
 publish job fails before uploading, fix the setting and re-run the failed jobs.
 
+**[HUMAN]** Revoke the API token that 0.1.0 and 0.1.1 were published with, at https://crates.io/settings/tokens. The
+`CARGO_REGISTRY_TOKEN` secret is already deleted from GitHub, but deleting the secret does not invalidate the token.
+Delete this step once the token is revoked.
+
 ## Branch ruleset for `main`
 
 `.github/rulesets/main.json` requires a pull request, linear history, squash merges, resolved review threads
