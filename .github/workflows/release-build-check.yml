@@ -6,6 +6,9 @@ on:
   workflow_dispatch:
   pull_request:
     branches: [main]
+    # The draft guard below skips draft PRs, so leaving draft must start a run;
+    # `ready_for_review` is not part of GitHub's default event types.
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - .github/workflows/release.yml
       - .github/workflows/release-build-check.yml
