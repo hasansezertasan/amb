@@ -57,6 +57,25 @@ impl Shared {
     }
 }
 
+/// Open the default output device.
+///
+/// rodio asks for a fixed buffer of about 50 ms (2048 frames at 44.1/48 kHz),
+/// which some devices reject outright (for example one that only accepts
+/// 14..=1024). Latency does not matter for an ambient mixer, so retry with the
+/// buffer size left to the OS, then with rodio's own fallback over other devices.
+fn open_sink() -> Result<MixerDeviceSink> {
+    let fixed =
+        rodio::DeviceSinkBuilder::from_default_device().and_then(|builder| builder.open_stream());
+    let sink = fixed
+        .or_else(|_| {
+            rodio::DeviceSinkBuilder::from_default_device()?
+                .with_buffer_size(rodio::cpal::BufferSize::Default)
+                .open_stream()
+        })
+        .or_else(|_| rodio::DeviceSinkBuilder::open_default_sink())?;
+    Ok(sink)
+}
+
 pub struct Engine {
     pub shared: Arc<Shared>,
     // Dropping the sink stops playback, so it lives as long as the engine.
@@ -65,8 +84,7 @@ pub struct Engine {
 
 impl Engine {
     pub fn start() -> Result<Self> {
-        let mut sink = rodio::DeviceSinkBuilder::open_default_sink()
-            .context("could not open the default audio output")?;
+        let mut sink = open_sink().context("could not open the default audio output")?;
         // The TUI owns the terminal; rodio's drop message would corrupt it.
         sink.log_on_drop(false);
         let sr = sink.config().sample_rate();
