@@ -1,0 +1,65 @@
+name: Release build check
+# Builds and packages every release target without attesting or publishing, so a
+# platform-specific break (shell, toolchain, packaging) shows up in a pull
+# request instead of during a release. Keep the matrix in sync with release.yml.
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/release.yml
+      - .github/workflows/release-build-check.yml
+      - .github/scripts/package-release.sh
+      - Cargo.toml
+      - Cargo.lock
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+permissions: {}
+jobs:
+  build:
+    name: Build (${{ matrix.target }})
+    if: ${{ github.event.pull_request.draft != true }}
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: x86_64-unknown-linux-gnu, os: ubuntu-22.04, ext: tar.gz }
+          - { target: aarch64-unknown-linux-gnu, os: ubuntu-22.04-arm, ext: tar.gz }
+          - { target: aarch64-apple-darwin, os: macos-14, ext: tar.gz }
+          - { target: x86_64-apple-darwin, os: macos-15-intel, ext: tar.gz }
+          - { target: x86_64-pc-windows-msvc, os: windows-2022, ext: zip }
+    env:
+      TARGET: ${{ matrix.target }}
+      EXT: ${{ matrix.ext }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+      - name: Install ALSA headers
+        if: ${{ runner.os == 'Linux' }}
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libasound2-dev pkg-config
+      - name: Install toolchain
+        shell: bash
+        run: rustup toolchain install stable --profile minimal --target "$TARGET"
+      - name: Build
+        shell: bash
+        run: cargo build --release --locked --target "$TARGET"
+      - name: Package
+        shell: bash
+        run: bash .github/scripts/package-release.sh
+      - name: Check the archive layout
+        shell: bash
+        run: |
+          # One top-level directory holding the binary, as mise's github backend expects.
+          if [ "$EXT" = "zip" ]; then
+            7z l "dist/amb-${TARGET}.zip" | grep -E "amb-${TARGET}[/\\\\]amb\.exe"
+          else
+            tar tzf "dist/amb-${TARGET}.tar.gz" | grep -x "amb-${TARGET}/amb"
+          fi
+          test -s "dist/amb-${TARGET}.${EXT}.sha256"
