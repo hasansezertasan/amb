@@ -215,10 +215,15 @@ jobs:
           REF_NAME: ${{ github.ref_name }}
           WORKFLOW: ${{ github.workflow }}
         run: |
+          # release-please's branch carries the component, e.g.
+          # release-please--branches--main--components--amb, so match by prefix.
+          # gh lists only the 30 newest PRs by default and the prefix filter runs
+          # client-side, so raise the limit or the release PR could fall outside it.
           pr="$(gh pr list --state open \
             --repo "$REPO" \
-            --head "release-please--branches--$REF_NAME" \
-            --json number --jq '.[0].number // empty')"
+            --limit 200 \
+            --json number,headRefName \
+            --jq '[.[] | select(.headRefName | startswith("release-please--branches--" + env.REF_NAME))] | .[0].number // empty')"
           if [ -n "$pr" ]; then
             echo "Closing phantom release PR #$pr"
             gh pr close "$pr" --delete-branch --repo "$REPO"
