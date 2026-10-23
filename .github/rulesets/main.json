@@ -31,6 +31,8 @@
           { "context": "Test (macos-latest)" },
           { "context": "Test (windows-latest)" },
           { "context": "MSRV check" },
+          { "context": "Package check" },
+          { "context": "Dependency review" },
           { "context": "Validate PR title" },
           { "context": "Validate branch name" }
         ]

@@ -153,7 +153,9 @@ one scope; this check is what proves the result.
 ## Branch ruleset for `main`
 
 `.github/rulesets/main.json` requires a pull request, linear history, squash merges, resolved review threads
-and the CI checks, and blocks force pushes and deletion. Repository admins may bypass through a pull request,
+and the CI checks (including the dependency review and the package check), and blocks force pushes and deletion.
+The dependency review fails without GitHub's dependency graph, so enable it (see "Dependency graph" below)
+before applying the ruleset. Repository admins may bypass through a pull request,
 which is how the release PR is merged: it is opened with `GITHUB_TOKEN`, so the required checks never run on it.
 
 **[AGENT]**
