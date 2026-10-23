@@ -1,0 +1,24 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: 21e76fb
+_src_path: https://github.com/hasansezertasan/copier-rust.git
+apt_packages: libasound2-dev pkg-config
+author_email: hasansezertasan@gmail.com
+author_full_name: Hasan Sezer Tasan
+bin_name: amb
+copyright_year: 2026
+crate_name: amb
+github_repo_name: amb
+github_user: hasansezertasan
+include_crates_publish: true
+include_repo_ruleset: true
+include_repo_settings: true
+license: MIT
+rust_version: '1.88'
+short_description: 'A terminal ambient-sound mixer: rain, thunder, wind, waves, fire
+    and more, synthesised live'
+targets:
+- x86_64-unknown-linux-gnu
+- aarch64-unknown-linux-gnu
+- aarch64-apple-darwin
+- x86_64-apple-darwin
+- x86_64-pc-windows-msvc

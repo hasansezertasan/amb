@@ -1,0 +1,8 @@
+---
+repository:
+  description: "A terminal ambient-sound mixer: rain, thunder, wind, waves, fire and more, synthesised live"
+  allow_squash_merge: true
+  allow_merge_commit: false
+  allow_rebase_merge: false
+  delete_branch_on_merge: true
+  has_issues: true
