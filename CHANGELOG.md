@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/hasansezertasan/amb/compare/v0.1.1...v0.1.2) (2026-10-23)
+
+
+### 👷 CI
+
+* publish to crates.io with trusted publishing ([#8](https://github.com/hasansezertasan/amb/issues/8)) ([9f406b5](https://github.com/hasansezertasan/amb/commit/9f406b548eb51a3a531dbd9d832af5a6e9b4f3d2))
+
 ## [0.1.1](https://github.com/hasansezertasan/amb/compare/v0.1.0...v0.1.1) (2026-10-23)
 
 
