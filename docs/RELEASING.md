@@ -25,8 +25,9 @@ These are settings, not files, so they cannot be reviewed in a PR.
 
 - **Release immutability**: Settings, General, Releases, enable release immutability. It only applies to releases published afterwards.
 - **Actions may open PRs**: Settings, Actions, General, Workflow permissions, enable "Allow GitHub Actions to create and approve pull requests".
-- **`publish` environment**: Settings, Environments, create `publish`. Restrict deployment branches to `main` (the workflow relies on this, since `workflow_dispatch` runs the file from the selected branch). Add the secret `CARGO_REGISTRY_TOKEN` to this environment, not to the repository.
-- **crates.io token**: create it at https://crates.io/settings/tokens with the `publish-new` and `publish-update` scopes, restricted to the `amb` crate name pattern if crates.io offers that. The first publish of a new crate cannot use trusted publishing. Once `amb` exists, configure trusted publishing for it and replace the token with `rust-lang/crates-io-auth-action`.
+- **`publish` environment**: Settings, Environments, create `publish`. Restrict deployment branches to `main` (the workflow relies on this, since `workflow_dispatch` runs the file from the selected branch).
+- **crates.io trusted publishing**: on the crate's page, Settings, Trusted Publishing, add a GitHub publisher with owner `hasansezertasan`, repository `amb`, workflow filename `release.yml` and environment `publish`. The environment must match the `environment: publish` of the publish job. No token is stored: the job exchanges its OIDC token for a short-lived crates.io token.
+- **First publish of a new crate**: trusted publishing only works for a crate that already exists, so the very first publish needs an API token (https://crates.io/settings/tokens, scopes `publish-new` and `publish-update`) added as the `CARGO_REGISTRY_TOKEN` secret of the `publish` environment, with the publish step temporarily reading that secret instead of the auth action's token. `amb` is already published, so this no longer applies to it.
 - **Renovate**: install the Renovate GitHub app on the repository; `.github/renovate.json` extends the shared preset.
 
 ## Known limitations
