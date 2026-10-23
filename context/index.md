@@ -62,6 +62,8 @@
 
 ## T
 
+- [template.md](template.md) — why amb follows a pinned copier-rust tag, what its main ruleset requires, and where its release notes went
+
 ## U
 
 ## V
