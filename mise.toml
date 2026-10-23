@@ -1,0 +1,18 @@
+min_version = "2025.9.18"
+
+[tasks.fmt]
+description = "Check formatting"
+run = "cargo fmt --all --check"
+
+[tasks.lint]
+description = "Run clippy with warnings as errors"
+run = "cargo clippy --locked --all-targets -- -D warnings"
+
+[tasks.test]
+description = "Run tests"
+alias = "t"
+run = "cargo test --locked"
+
+[tasks.check]
+description = "Format, lint and test"
+depends = ["fmt", "lint", "test"]

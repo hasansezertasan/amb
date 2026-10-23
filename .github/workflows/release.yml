@@ -7,7 +7,7 @@ on:
   # exception to GITHUB_TOKEN loop-prevention, so that step needs no PAT. A
   # manual run executes this file from the *selected branch*; the containment is
   # the `publish` environment's main-only deployment-branch policy, which GitHub
-  # evaluates outside this file (see docs/RELEASING.md).
+  # evaluates outside this file (see REPOSITORY_SETUP.md).
   workflow_dispatch:
   push:
     branches:
@@ -51,8 +51,8 @@ jobs:
       fail-fast: true
       matrix:
         include:
-          # Native runners only: cpal links libasound dynamically, so musl and
-          # cross builds are not an option. ubuntu-22.04 keeps the glibc floor low.
+          # Native runners only, so system libraries link normally; musl and cross
+          # builds are not offered. ubuntu-22.04 keeps the glibc floor low.
           - { target: x86_64-unknown-linux-gnu, os: ubuntu-22.04, ext: tar.gz }
           - { target: aarch64-unknown-linux-gnu, os: ubuntu-22.04-arm, ext: tar.gz }
           - { target: aarch64-apple-darwin, os: macos-14, ext: tar.gz }
@@ -69,7 +69,7 @@ jobs:
           # run: they differ if a later push or manual dispatch re-runs the release.
           ref: ${{ needs.release-please.outputs.sha }}
           persist-credentials: false
-      - name: Install ALSA headers
+      - name: Install system packages
         if: ${{ runner.os == 'Linux' }}
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libasound2-dev pkg-config
       # Every step that expands $TARGET runs in bash: the Windows runner's default
@@ -145,7 +145,7 @@ jobs:
           # run: they differ if a later push or manual dispatch re-runs the release.
           ref: ${{ needs.release-please.outputs.sha }}
           persist-credentials: false
-      - name: Install ALSA headers
+      - name: Install system packages
         # `cargo publish` verifies the package by building it.
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libasound2-dev pkg-config
       - name: Install toolchain
