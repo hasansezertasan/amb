@@ -70,3 +70,6 @@
 - name: area:deps
   color: 0366d6
   description: Dependency declarations or lockfile
+- name: cobo
+  color: 5319e7
+  description: Automated cobo fragment update pull request
