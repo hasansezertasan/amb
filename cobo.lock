@@ -28,3 +28,25 @@ update = true
   path = "Global/Linux.gitignore"
   commit = "0e5d690153ca3da8a4a1aef2d053406f408f531c"
   blob = "35ea8c67239c3542d012454da948096a52d1bf06"
+
+[[fragment]]
+path = ".gitattributes"
+source = "gitattributes"
+update = true
+
+  [[fragment.files]]
+  name = "Common"
+  path = "Common.gitattributes"
+  commit = "2c20a14833a5ab196c7fc3effcc72ef4e895f4d4"
+  blob = "e3d22ec082fb07e097dbe8bfc58d182b7983d0a5"
+
+[[fragment]]
+path = ".editorconfig"
+source = "editorconfig"
+update = true
+
+  [[fragment.files]]
+  name = "Generic"
+  path = "Generic.editorconfig"
+  commit = "f64e011b04669db816b8075f3a9d4f3beb58c9d6"
+  blob = "b1b86bb89af2ed0a690f506273637d5e31a62c58"
