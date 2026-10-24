@@ -11,9 +11,10 @@
 amb was brought onto the copier-rust template with `copier copy --overwrite`.
 The first run (PR #10) was made without a tag, because the template had no
 release yet, and recorded `_commit: 21e76fb`. The maintainer then asked for a
-version instead, so `.copier-answers.yml` now records `v0.1.2`, and the
-adoption PR was re-pinned as each template release appeared (v0.1.0, v0.1.1,
-v0.1.2) before it merged.
+version instead, so `.copier-answers.yml` recorded `v0.1.2` when the adoption
+merged, after the adoption PR was re-pinned as each template release appeared
+(v0.1.0, v0.1.1, v0.1.2). A later `copier update` (PR #19) moved the pin to
+`v0.2.0`, which is what `.copier-answers.yml` records now.
 
 **Reason:** the maintainer's handoff note says the adoption needs a tag to pin
 to, and that a bare commit hash is not something to leave in the answers file.
@@ -27,10 +28,10 @@ adopting at all. The maintainer chose to adopt unpinned and re-pin.
 **Id:** 04e36280-3b5b-421f-b8eb-6195b18af3ee
 **Type:** decision
 **Type:** constraint
-**Status:** active
+**Status:** needs-review
 **Evidence:** confirmed
 **Source:** maintainer conversation, 2026-10-23; review findings on PR #10; copier-rust PR #9
-**Verification:** corroborated
+**Verification:** contradicted — `REPOSITORY_SETUP.md` as updated to copier-rust v0.2.0 (PR #19) says the release PR's `pull_request` workflows start in an approval-required state and run once approved, which the sentence below ("no required check ever runs on it") does not allow for; only the `pull_request_target` checks (`Validate PR title`, `Validate branch name`) stay pending
 **Revisit when:** a CI job is added to or removed from `ci.yml`, or the release PR starts running CI
 
 `.github/rulesets/main.json` requires nine checks: `Format and clippy`, the
