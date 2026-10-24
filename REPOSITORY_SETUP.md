@@ -127,8 +127,11 @@ Delete this step once the token is revoked.
 `.github/rulesets/main.json` requires a pull request, linear history, squash merges, resolved review threads
 and the CI checks (including the dependency review and the package check), and blocks force pushes and deletion.
 The dependency review fails without GitHub's dependency graph, so enable it (see "Dependency graph" below)
-before applying the ruleset. Repository admins may bypass through a pull request,
-which is how the release PR is merged: it is opened with `GITHUB_TOKEN`, so the required checks never run on it.
+before applying the ruleset. The release PR is opened with `GITHUB_TOKEN`: its `pull_request` workflows start in
+an approval-required state and run once approved, but `Validate PR title` and `Validate branch name` run on
+`pull_request_target`, which release-please's `GITHUB_TOKEN` creation and updates never trigger, so they stay pending.
+Reopening the PR by hand starts both, and editing its title starts the title check. Otherwise repository admins
+merge the release PR by bypassing the ruleset through a pull request.
 
 **[AGENT]**
 
@@ -186,6 +189,6 @@ gh api --silent repos/hasansezertasan/amb/dependency-graph/compare/main...main
 
 ## Known limitations
 
-- A pull request opened with `GITHUB_TOKEN` (the release PR) does not trigger other workflows, so required status checks stay pending on it. Either do not require checks for `release-please--*` branches or merge it as a repository admin.
+- When release-please opens a release PR or updates its branch with `GITHUB_TOKEN`, the `pull_request` workflows start in an approval-required state (`action_required`) and run once a user with write access approves them. The `pull_request_target` checks (`Validate PR title`, `Validate branch name`) do not run when release-please creates or updates the PR with `GITHUB_TOKEN`; reopening it by hand starts both, and editing its title starts the title check, or merge it as a repository admin through the ruleset bypass.
 - release-please's "Created releases" comment links the draft's transient URL, which 404s after publication. The release itself is correct.
 - If a release run fails after the draft is created, do not delete the tag once the release is published: an immutable release's tag can never be reused. A failed run before publication leaves only a draft; delete the draft and its tag, and revert the release commit's version bump so release-please proposes the same version again.
