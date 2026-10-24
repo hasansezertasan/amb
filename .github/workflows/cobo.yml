@@ -28,3 +28,6 @@ jobs:
           # (the action's default, cobo/update-fragments, is not a valid type).
           branch: chore/update-cobo-fragments
           pr-title: "chore: update cobo fragments"
+          # Without this a fragment that cannot be re-rendered leaves the job green and
+          # the fragment silently stale (no diff means no PR either).
+          fail-on-sync-error: "true"
