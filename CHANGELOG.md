@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.3](https://github.com/hasansezertasan/amb/compare/v0.1.2...v0.1.3) (2026-10-24)
+
+
+### 📝 Documentation
+
+* drop the token-retirement notes now that trusted publishing works ([#12](https://github.com/hasansezertasan/amb/issues/12)) ([32c1db2](https://github.com/hasansezertasan/amb/commit/32c1db26672bd162c5f0d6aced718f7ce340cbb3))
+* record why amb follows a pinned copier-rust tag ([#13](https://github.com/hasansezertasan/amb/issues/13)) ([a852a3b](https://github.com/hasansezertasan/amb/commit/a852a3bfd830bb2ec6033a40e9ad7724330eb861))
+
+
+### 👷 CI
+
+* fail the cobo workflow when a fragment cannot be synced ([#18](https://github.com/hasansezertasan/amb/issues/18)) ([4121a3b](https://github.com/hasansezertasan/amb/commit/4121a3b309f0a72a87b19b6715880bf0543abda4))
+
 ## [0.1.2](https://github.com/hasansezertasan/amb/compare/v0.1.1...v0.1.2) (2026-10-23)
 
 
