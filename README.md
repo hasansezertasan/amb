@@ -39,6 +39,9 @@ amb
 | `0`-`9` | set its level to 0-90% |
 | `p` / `P` | next / previous preset |
 | `s` | save the current mix as a preset (type a name, `enter`; an existing name is overwritten) |
+| `r` | rename the active preset (the one named in the header) |
+| `d` | delete the active preset, after a `y` to confirm |
+| `R` | reset every preset to the built-ins, after a `y` to confirm (this deletes presets you saved) |
 | `+` / `-` | master volume |
 | `space` | pause / resume |
 | `m` | silence every sound |
@@ -46,4 +49,4 @@ amb
 
 Levels are remembered in `~/.config/amb/levels` (honouring `$XDG_CONFIG_HOME`), or under `%APPDATA%` on Windows.
 
-Presets live next to it in `presets.toml`. The built-in ones (rainy night, campfire, beach, forest, storm) are written there on first run; edit them, save the current mix with `s`, or add your own `[name]` section of `sound = level` lines (levels 0 to 1, sounds left out are silent). Saving only rewrites the section of that name; the rest of the file, comments included, is left alone.
+Presets live next to it in `presets.toml`. The built-in ones (rainy night, campfire, beach, forest, storm) are written there on first run; edit them, save the current mix with `s`, or add your own `[name]` section of `sound = level` lines (levels 0 to 1, sounds left out are silent). Saving, renaming and deleting only touch the section concerned; the rest of the file, comments included, is left alone. Renaming onto a name that is already taken is refused.

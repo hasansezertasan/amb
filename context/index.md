@@ -54,6 +54,8 @@
 
 ## P
 
+- [presets.md](presets.md) — why presets are a seeded, hand-editable file, switch instantly and overwrite on a repeated name
+
 ## Q
 
 ## R

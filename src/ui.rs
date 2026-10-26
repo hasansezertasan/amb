@@ -4,7 +4,7 @@ use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Paragraph, Wrap};
 
-use crate::app::App;
+use crate::app::{App, Prompt};
 use crate::synth::Kind;
 
 const ACCENT: Color = Color::Rgb(137, 180, 250);
@@ -14,7 +14,7 @@ pub fn draw(f: &mut Frame, app: &App) {
     let [header, body, footer] = Layout::vertical([
         Constraint::Length(3),
         Constraint::Min(3),
-        Constraint::Length(2),
+        Constraint::Length(3),
     ])
     .areas(f.area());
 
@@ -116,19 +116,48 @@ fn draw_mixer(f: &mut Frame, app: &App, area: Rect) {
     f.render_widget(Paragraph::new(lines), inner);
 }
 
+/// Footer text, centred and wrapped so an 80-column terminal never clips it.
+fn centered(spans: Vec<Span<'_>>) -> Paragraph<'_> {
+    Paragraph::new(Line::from(spans))
+        .alignment(Alignment::Center)
+        .wrap(Wrap { trim: true })
+}
+
 fn draw_footer(f: &mut Frame, app: &App, area: Rect) {
-    if let Some(name) = app.naming() {
-        let line = Line::from(vec![
-            Span::styled("save preset as ", Style::new().fg(DIM)),
-            Span::styled(format!("{name}█"), Style::new().fg(ACCENT)),
-            Span::styled("  ·  enter save  ·  esc cancel", Style::new().fg(DIM)),
-        ]);
-        f.render_widget(Paragraph::new(line).alignment(Alignment::Center), area);
+    if let Some(prompt) = app.prompt() {
+        let dim = Style::new().fg(DIM);
+        let accent = Style::new().fg(ACCENT);
+        let spans = match prompt {
+            Prompt::Save(name) => vec![
+                Span::styled("save preset as ", dim),
+                Span::styled(format!("{name}█"), accent),
+                Span::styled("  ·  enter save  ·  esc cancel", dim),
+            ],
+            Prompt::Rename { from, name } => vec![
+                Span::styled(format!("rename {from} to "), dim),
+                Span::styled(format!("{name}█"), accent),
+                Span::styled("  ·  enter rename  ·  esc cancel", dim),
+            ],
+            Prompt::ConfirmReset => vec![
+                Span::styled(
+                    "reset every preset to the built-ins, deleting your own? ",
+                    dim,
+                ),
+                Span::styled("y", accent),
+                Span::styled(" to confirm  ·  any other key cancels", dim),
+            ],
+            Prompt::ConfirmDelete(name) => vec![
+                Span::styled(format!("delete preset {name}? "), dim),
+                Span::styled("y", accent),
+                Span::styled(" to confirm  ·  any other key cancels", dim),
+            ],
+        };
+        f.render_widget(centered(spans), area);
         return;
     }
     if let Some(notice) = app.notice() {
-        let line = Line::from(Span::styled(notice.to_string(), Style::new().fg(ACCENT)));
-        f.render_widget(Paragraph::new(line).alignment(Alignment::Center), area);
+        let span = Span::styled(notice.to_string(), Style::new().fg(ACCENT));
+        f.render_widget(centered(vec![span]), area);
         return;
     }
     let keys = [
@@ -136,7 +165,8 @@ fn draw_footer(f: &mut Frame, app: &App, area: Rect) {
         ("←→/hl", "level"),
         ("0-9", "set"),
         ("p/P", "preset"),
-        ("s", "save preset"),
+        ("s/r/d", "save/rename/delete preset"),
+        ("R", "reset presets"),
         ("+/-", "master"),
         ("space", "pause"),
         ("m", "mute all"),
@@ -150,14 +180,8 @@ fn draw_footer(f: &mut Frame, app: &App, area: Rect) {
         spans.push(Span::styled(*k, Style::new().fg(ACCENT)));
         spans.push(Span::styled(format!(" {d}"), Style::new().fg(DIM)));
     }
-    f.render_widget(
-        // The hints are ~97 columns wide; wrap onto the footer's second row so
-        // nothing is clipped on an 80-column terminal.
-        Paragraph::new(Line::from(spans))
-            .alignment(Alignment::Center)
-            .wrap(Wrap { trim: true }),
-        area,
-    );
+    // The hints are ~150 columns wide; they wrap over the footer's three rows.
+    f.render_widget(centered(spans), area);
 }
 
 #[cfg(test)]
@@ -211,6 +235,24 @@ mod tests {
     }
 
     #[test]
+    fn confirm_prompts_are_not_clipped_on_an_80_column_terminal() {
+        use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+
+        let mut app = App::new(Arc::new(Shared::new()));
+        app.on_key(KeyEvent::new(KeyCode::Char('R'), KeyModifiers::NONE));
+        let mut term = Terminal::new(TestBackend::new(80, 16)).unwrap();
+        term.draw(|f| draw(f, &app)).unwrap();
+        let text: String = term
+            .backend()
+            .buffer()
+            .content()
+            .iter()
+            .map(|c| c.symbol())
+            .collect();
+        assert!(text.contains("cancels"), "reset prompt is clipped");
+    }
+
+    #[test]
     fn footer_hints_fit_an_80_column_terminal() {
         let app = App::new(Arc::new(Shared::new()));
         let mut term = Terminal::new(TestBackend::new(80, 16)).unwrap();
@@ -227,7 +269,8 @@ mod tests {
             "level",
             "set",
             "preset",
-            "save preset",
+            "save/rename/delete",
+            "reset presets",
             "master",
             "pause",
             "mute all",
