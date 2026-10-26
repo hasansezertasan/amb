@@ -71,14 +71,8 @@ pub fn load() -> Vec<Preset> {
         return builtin();
     };
     match fs::read_to_string(&path) {
-        Ok(text) => {
-            let presets = parse(&text);
-            if presets.is_empty() {
-                builtin()
-            } else {
-                presets
-            }
-        }
+        // An existing file is the user's, even with every section removed.
+        Ok(text) => parse(&text),
         Err(e) => {
             if e.kind() == ErrorKind::NotFound {
                 // Best effort: running without a writable config dir is fine.
@@ -201,7 +195,8 @@ pub fn save(preset: &Preset) -> io::Result<()> {
         fs::create_dir_all(dir)?;
     }
     // Write-then-rename so a kill mid-save can't truncate the user's file.
-    let tmp = path.with_extension("tmp");
+    // The pid keeps two running instances from sharing a temp file.
+    let tmp = path.with_extension(format!("{}.tmp", std::process::id()));
     fs::write(&tmp, upsert(&text, preset))?;
     fs::rename(tmp, path)
 }
