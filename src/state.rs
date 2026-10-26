@@ -8,7 +8,8 @@ use etcetera::{AppStrategy, AppStrategyArgs, choose_app_strategy};
 use crate::audio::Shared;
 use crate::synth::Kind;
 
-fn path() -> Option<PathBuf> {
+/// A file in amb's config dir.
+pub fn path(file: &str) -> Option<PathBuf> {
     // XDG on macOS/Linux (ignoring empty or relative values), %APPDATA% on Windows.
     let strategy = choose_app_strategy(AppStrategyArgs {
         top_level_domain: String::new(),
@@ -16,11 +17,11 @@ fn path() -> Option<PathBuf> {
         app_name: "amb".to_string(),
     })
     .ok()?;
-    Some(strategy.config_dir().join("levels"))
+    Some(strategy.config_dir().join(file))
 }
 
 pub fn load(shared: &Shared) {
-    let Some(text) = path().and_then(|p| fs::read_to_string(p).ok()) else {
+    let Some(text) = path("levels").and_then(|p| fs::read_to_string(p).ok()) else {
         return;
     };
     for line in text.lines() {
@@ -43,7 +44,7 @@ pub fn load(shared: &Shared) {
 }
 
 pub fn save(shared: &Shared) {
-    let Some(path) = path() else { return };
+    let Some(path) = path("levels") else { return };
     let mut out = format!("master={:.2}\n", shared.master());
     for (i, k) in Kind::ALL.iter().enumerate() {
         out.push_str(&format!(
