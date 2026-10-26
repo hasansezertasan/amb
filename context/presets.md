@@ -111,7 +111,9 @@ Whether it was weighed by a maintainer is not recorded; it was not chosen
 because of the two points above.
 
 **Consequence:** comments placed inside a section that is replaced are lost;
-comments between sections are kept.
+comments between sections are kept. Presets are identified by name, ignoring
+case; if a hand-edited file repeats a name, the first section is used and the
+later one is ignored, so every action targets the preset the user sees.
 
 ## Renaming onto an existing preset's name is refused
 

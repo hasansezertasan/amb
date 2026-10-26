@@ -87,19 +87,29 @@ pub fn load() -> Vec<Preset> {
     }
 }
 
+/// Sections are identified by name, ignoring case; when a name repeats, the
+/// first section wins and the later one is ignored.
 fn parse(text: &str) -> Vec<Preset> {
     let mut presets: Vec<Preset> = Vec::new();
+    // Whether the lines being read belong to the preset just added.
+    let mut open = false;
     for line in text.lines() {
         let line = line.trim();
         if line.is_empty() || line.starts_with('#') {
             continue;
         }
         if let Some(name) = line.strip_prefix('[').and_then(|l| l.strip_suffix(']')) {
-            presets.push(Preset {
-                name: name.trim().to_string(),
-                levels: [0.0; Kind::ALL.len()],
-            });
-        } else if let (Some(preset), Some((key, val))) = (presets.last_mut(), line.split_once('='))
+            let name = name.trim();
+            open = !name.is_empty() && !presets.iter().any(|p| p.name.eq_ignore_ascii_case(name));
+            if open {
+                presets.push(Preset {
+                    name: name.to_string(),
+                    levels: [0.0; Kind::ALL.len()],
+                });
+            }
+        } else if open
+            && let Some(preset) = presets.last_mut()
+            && let Some((key, val)) = line.split_once('=')
             && let Ok(val) = val.trim().parse::<f32>()
             && val.is_finite()
             && let Some(i) = Kind::ALL
@@ -109,7 +119,6 @@ fn parse(text: &str) -> Vec<Preset> {
             preset.levels[i] = val.clamp(0.0, 1.0);
         }
     }
-    presets.retain(|p| !p.name.is_empty());
     presets
 }
 
@@ -371,6 +380,17 @@ mod tests {
             rename_section(text, "a", "new name"),
             "[new name]\nrain = 0.5 \n\n[b]\nwind = 0.2\n"
         );
+    }
+
+    #[test]
+    fn a_repeated_name_keeps_the_first_section_only() {
+        let text = "[Mix]\nrain = 0.2\n[mix]\nrain = 0.9\nfire = 0.9\n[other]\nwind = 0.4\n";
+        let presets = parse(text);
+        assert_eq!(presets.len(), 2);
+        assert_eq!(presets[0].name, "Mix");
+        assert_eq!(presets[0].levels[0], 0.2);
+        assert_eq!(presets[0].levels[4], 0.0);
+        assert_eq!(presets[1].levels[2], 0.4);
     }
 
     #[test]
