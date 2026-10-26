@@ -99,9 +99,14 @@ impl App {
             KeyCode::Backspace => {
                 name.pop();
             }
+            KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => return,
             // Brackets would corrupt the section header in the file.
             KeyCode::Char(c)
-                if !c.is_control() && c != '[' && c != ']' && name.chars().count() < NAME_MAX =>
+                if !c.is_control()
+                    && !key.modifiers.contains(KeyModifiers::CONTROL)
+                    && c != '['
+                    && c != ']'
+                    && name.chars().count() < NAME_MAX =>
             {
                 name.push(c)
             }
@@ -289,6 +294,14 @@ mod tests {
         // Esc cancels without saving.
         type_name(&mut app, "nope");
         app.on_key(key(KeyCode::Esc));
+        assert_eq!(app.naming(), None);
+        assert_eq!(saved.borrow().len(), 2);
+
+        // Ctrl+C cancels too rather than typing a `c`, and other Ctrl chords are ignored.
+        type_name(&mut app, "no");
+        app.on_key(KeyEvent::new(KeyCode::Char('x'), KeyModifiers::CONTROL));
+        assert_eq!(app.naming(), Some("no"));
+        app.on_key(KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL));
         assert_eq!(app.naming(), None);
         assert_eq!(saved.borrow().len(), 2);
     }
