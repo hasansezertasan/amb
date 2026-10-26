@@ -30,15 +30,21 @@ adopting at all. The maintainer chose to adopt unpinned and re-pin.
 **Type:** constraint
 **Status:** needs-review
 **Evidence:** confirmed
-**Source:** maintainer conversation, 2026-10-23; review findings on PR #10; copier-rust PR #9
-**Verification:** contradicted — `REPOSITORY_SETUP.md` as updated to copier-rust v0.2.0 (PR #19) says the release PR's `pull_request` workflows start in an approval-required state and run once approved, which the sentence below ("no required check ever runs on it") does not allow for; only the `pull_request_target` checks (`Validate PR title`, `Validate branch name`) stay pending
-**Revisit when:** a CI job is added to or removed from `ci.yml`, or the release PR starts running CI
+**Source:** maintainer conversation, 2026-10-23; review findings on PR #10; copier-rust PR #9; check results on release PR #14, 2026-10-24
+**Verification:** uncorroborated — all nine required checks passed on release PR #14, but only after a reopen; the runs at creation waited for approval
+**Revisit when:** a CI job is added to or removed from `ci.yml`, or the release PR stops running its required checks
 
 `.github/rulesets/main.json` requires nine checks: `Format and clippy`, the
 three `Test (...)` jobs, `MSRV check`, `Package check`, `Dependency review`,
-`Validate PR title` and `Validate branch name`. Repository admins can bypass
-through a pull request, which is how the release PR is merged: it is opened
-with `GITHUB_TOKEN`, so no required check ever runs on it.
+`Validate PR title` and `Validate branch name`. Repository admins can still
+bypass through a pull request. The release PR is opened with `GITHUB_TOKEN`,
+which this entry first recorded as meaning that no required check ever runs on
+it. The record on release PR #14 is narrower than that: the workflow runs
+started when the PR was created sat in `action_required`, and every one of the
+nine required checks, including the two `pull_request_target` ones, ran and
+passed only after the PR was reopened or force-pushed. Whether a freshly
+created release PR starts them without that step was not established, so the
+initial-creation path stays under review.
 
 `Dependency review` fails without GitHub's dependency graph, so the graph has
 to be enabled before the ruleset is applied.
