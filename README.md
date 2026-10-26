@@ -37,9 +37,13 @@ amb
 | `↑` `↓` / `j` `k` | select a sound |
 | `←` `→` / `h` `l` | change its level by 5% |
 | `0`-`9` | set its level to 0-90% |
+| `p` / `P` | next / previous preset |
+| `s` | save the current mix as a preset (type a name, `enter`; an existing name is overwritten) |
 | `+` / `-` | master volume |
 | `space` | pause / resume |
 | `m` | silence every sound |
 | `q` / `Esc` | quit |
 
 Levels are remembered in `~/.config/amb/levels` (honouring `$XDG_CONFIG_HOME`), or under `%APPDATA%` on Windows.
+
+Presets live next to it in `presets.toml`. The built-in ones (rainy night, campfire, beach, forest, storm) are written there on first run; edit them, save the current mix with `s`, or add your own `[name]` section of `sound = level` lines (levels 0 to 1, sounds left out are silent). Saving only rewrites the section of that name; the rest of the file, comments included, is left alone.

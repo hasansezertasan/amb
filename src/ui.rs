@@ -20,7 +20,7 @@ pub fn draw(f: &mut Frame, app: &App) {
 
     draw_header(f, app, header);
     draw_mixer(f, app, body);
-    draw_footer(f, footer);
+    draw_footer(f, app, footer);
 }
 
 fn bar(level: f32, width: usize, active: bool) -> Vec<Span<'static>> {
@@ -55,6 +55,10 @@ fn draw_header(f: &mut Frame, app: &App, area: Rect) {
         (app.shared().master() * 100.0).round()
     )));
     spans.push(Span::styled(status, Style::new().fg(DIM).italic()));
+    if let Some(name) = app.active_preset() {
+        spans.push(Span::styled("  ·  ", Style::new().fg(DIM)));
+        spans.push(Span::styled(name.to_string(), Style::new().fg(ACCENT)));
+    }
     f.render_widget(
         Paragraph::new(Line::from(spans)).block(
             Block::bordered()
@@ -73,8 +77,9 @@ fn draw_mixer(f: &mut Frame, app: &App, area: Rect) {
     let inner = block.inner(area);
     f.render_widget(block, area);
 
-    // marker + space + name(9) + space + percentage(5) take 17 columns.
-    let bar_width = (inner.width as usize).saturating_sub(18).clamp(4, 50);
+    // marker + space + name(9) + space + percentage(5) take 17 columns; the
+    // bar takes the rest so the mixer spans the window.
+    let bar_width = (inner.width as usize).saturating_sub(17).max(4);
     // On short terminals keep the selected row in view by scrolling.
     let rows = (inner.height as usize).max(1);
     let offset = (app.selected() + 1).saturating_sub(rows);
@@ -111,11 +116,27 @@ fn draw_mixer(f: &mut Frame, app: &App, area: Rect) {
     f.render_widget(Paragraph::new(lines), inner);
 }
 
-fn draw_footer(f: &mut Frame, area: Rect) {
+fn draw_footer(f: &mut Frame, app: &App, area: Rect) {
+    if let Some(name) = app.naming() {
+        let line = Line::from(vec![
+            Span::styled("save preset as ", Style::new().fg(DIM)),
+            Span::styled(format!("{name}█"), Style::new().fg(ACCENT)),
+            Span::styled("  ·  enter save  ·  esc cancel", Style::new().fg(DIM)),
+        ]);
+        f.render_widget(Paragraph::new(line).alignment(Alignment::Center), area);
+        return;
+    }
+    if let Some(notice) = app.notice() {
+        let line = Line::from(Span::styled(notice.to_string(), Style::new().fg(ACCENT)));
+        f.render_widget(Paragraph::new(line).alignment(Alignment::Center), area);
+        return;
+    }
     let keys = [
         ("↑↓/jk", "select"),
         ("←→/hl", "level"),
         ("0-9", "set"),
+        ("p/P", "preset"),
+        ("s", "save preset"),
         ("+/-", "master"),
         ("space", "pause"),
         ("m", "mute all"),
@@ -202,7 +223,15 @@ mod tests {
             .map(|c| c.symbol())
             .collect();
         for hint in [
-            "select", "level", "set", "master", "pause", "mute all", "quit",
+            "select",
+            "level",
+            "set",
+            "preset",
+            "save preset",
+            "master",
+            "pause",
+            "mute all",
+            "quit",
         ] {
             assert!(text.contains(hint), "footer hint {hint:?} is clipped");
         }

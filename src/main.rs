@@ -1,5 +1,6 @@
 mod app;
 mod audio;
+mod presets;
 mod state;
 mod synth;
 mod ui;
@@ -14,7 +15,9 @@ fn main() -> Result<()> {
     let engine = audio::Engine::start()?;
     state::load(&engine.shared);
 
-    let mut app = app::App::new(engine.shared.clone());
+    let mut app = app::App::new(engine.shared.clone())
+        .with_presets(presets::load())
+        .with_saver(presets::save);
     let mut terminal = ratatui::try_init().context("amb needs an interactive terminal")?;
     let result = run(&mut terminal, &mut app);
     ratatui::restore();
