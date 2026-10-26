@@ -28,10 +28,10 @@ adopting at all. The maintainer chose to adopt unpinned and re-pin.
 **Id:** 04e36280-3b5b-421f-b8eb-6195b18af3ee
 **Type:** decision
 **Type:** constraint
-**Status:** active
+**Status:** needs-review
 **Evidence:** confirmed
 **Source:** maintainer conversation, 2026-10-23; review findings on PR #10; copier-rust PR #9; check results on release PR #14, 2026-10-24
-**Verification:** corroborated — all nine required checks ran and passed on release PR #14
+**Verification:** uncorroborated — all nine required checks passed on release PR #14, but only after a reopen; the runs at creation waited for approval
 **Revisit when:** a CI job is added to or removed from `ci.yml`, or the release PR stops running its required checks
 
 `.github/rulesets/main.json` requires nine checks: `Format and clippy`, the
@@ -39,11 +39,12 @@ three `Test (...)` jobs, `MSRV check`, `Package check`, `Dependency review`,
 `Validate PR title` and `Validate branch name`. Repository admins can still
 bypass through a pull request. The release PR is opened with `GITHUB_TOKEN`,
 which this entry first recorded as meaning that no required check ever runs on
-it. That no longer holds: copier-rust v0.2.0's `REPOSITORY_SETUP.md` describes
-the `pull_request` workflows starting in an approval-required state, and on
-release PR #14 every one of the nine required checks, including the two
-`pull_request_target` ones, ran and passed. What made them run (an approval, a
-reopen or a title edit) was not established.
+it. The record on release PR #14 is narrower than that: the workflow runs
+started when the PR was created sat in `action_required`, and every one of the
+nine required checks, including the two `pull_request_target` ones, ran and
+passed only after the PR was reopened or force-pushed. Whether a freshly
+created release PR starts them without that step was not established, so the
+initial-creation path stays under review.
 
 `Dependency review` fails without GitHub's dependency graph, so the graph has
 to be enabled before the ruleset is applied.
