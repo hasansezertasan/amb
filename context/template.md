@@ -13,8 +13,9 @@ The first run (PR #10) was made without a tag, because the template had no
 release yet, and recorded `_commit: 21e76fb`. The maintainer then asked for a
 version instead, so `.copier-answers.yml` recorded `v0.1.2` when the adoption
 merged, after the adoption PR was re-pinned as each template release appeared
-(v0.1.0, v0.1.1, v0.1.2). A later `copier update` (PR #19) moved the pin to
-`v0.2.0`, which is what `.copier-answers.yml` records now.
+(v0.1.0, v0.1.1, v0.1.2). Later `copier update` runs moved the pin to
+`v0.2.0` (PR #19) and then to `v0.2.1`, which is what `.copier-answers.yml`
+records now.
 
 **Reason:** the maintainer's handoff note says the adoption needs a tag to pin
 to, and that a bare commit hash is not something to leave in the answers file.
