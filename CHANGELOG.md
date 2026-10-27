@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.2.0](https://github.com/hasansezertasan/amb/compare/v0.1.2...v0.2.0) (2026-10-27)
+
+
+### 🚀 Features
+
+* add mixer presets with in-app saving ([#22](https://github.com/hasansezertasan/amb/issues/22)) ([0fcbbc3](https://github.com/hasansezertasan/amb/commit/0fcbbc3b444e260c738e55c2e738a2ea88c05956))
+* add preset delete, rename and reset ([#23](https://github.com/hasansezertasan/amb/issues/23)) ([cf9c680](https://github.com/hasansezertasan/amb/commit/cf9c6807eb9d4856d6f7fad1778f77d56959d9b9))
+
+
+### 📝 Documentation
+
+* drop the token-retirement notes now that trusted publishing works ([#12](https://github.com/hasansezertasan/amb/issues/12)) ([32c1db2](https://github.com/hasansezertasan/amb/commit/32c1db26672bd162c5f0d6aced718f7ce340cbb3))
+* record that the release PR runs its required checks ([#20](https://github.com/hasansezertasan/amb/issues/20)) ([2cf126e](https://github.com/hasansezertasan/amb/commit/2cf126e0ec82877877ba4c2224d211d06022bb09))
+* record why amb follows a pinned copier-rust tag ([#13](https://github.com/hasansezertasan/amb/issues/13)) ([a852a3b](https://github.com/hasansezertasan/amb/commit/a852a3bfd830bb2ec6033a40e9ad7724330eb861))
+
+
+### 👷 CI
+
+* fail the cobo workflow when a fragment cannot be synced ([#18](https://github.com/hasansezertasan/amb/issues/18)) ([4121a3b](https://github.com/hasansezertasan/amb/commit/4121a3b309f0a72a87b19b6715880bf0543abda4))
+
 ## [0.1.2](https://github.com/hasansezertasan/amb/compare/v0.1.1...v0.1.2) (2026-10-23)
 
 
