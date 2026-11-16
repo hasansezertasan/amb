@@ -12,6 +12,14 @@ use anyhow::{Context, Result};
 use crossterm::event::{self, Event};
 
 fn main() -> Result<()> {
+    if std::env::args()
+        .skip(1)
+        .any(|arg| arg == "--version" || arg == "-V")
+    {
+        println!("amb {}", env!("CARGO_PKG_VERSION"));
+        return Ok(());
+    }
+
     // Open audio before touching the terminal so failures print normally.
     let engine = audio::Engine::start()?;
     state::load(&engine.shared);

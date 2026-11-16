@@ -30,6 +30,8 @@ On Linux, building from source needs the ALSA headers (`libasound2-dev` on Debia
 amb
 ```
 
+`amb --version` (or `-V`) prints the installed version and exits.
+
 ## Keys
 
 | Key | Action |
