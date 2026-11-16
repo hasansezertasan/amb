@@ -12,7 +12,7 @@ use anyhow::{Context, Result};
 use crossterm::event::{self, Event};
 
 fn main() -> Result<()> {
-    if std::env::args()
+    if std::env::args_os()
         .skip(1)
         .any(|arg| arg == "--version" || arg == "-V")
     {
