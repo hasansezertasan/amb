@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.0](https://github.com/hasansezertasan/amb/compare/v0.2.0...v0.3.0) (2026-11-19)
+
+
+### 🚀 Features
+
+* add --version flag ([#26](https://github.com/hasansezertasan/amb/issues/26)) ([abe0dc0](https://github.com/hasansezertasan/amb/commit/abe0dc0c4656c0accf33999b197d07c39f624ede))
+
+
+### 👷 CI
+
+* move aarch64-apple-darwin builds to macos-15 ([#28](https://github.com/hasansezertasan/amb/issues/28)) ([0f1e102](https://github.com/hasansezertasan/amb/commit/0f1e1028cabaef9f0f3951a65ffba01d2e5ce40b))
+
 ## [0.2.0](https://github.com/hasansezertasan/amb/compare/v0.1.2...v0.2.0) (2026-10-27)
 
 
